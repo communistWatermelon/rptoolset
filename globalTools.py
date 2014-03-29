@@ -6,17 +6,42 @@ Tools for all users
 	read character sheet
 	modify character sheet
 """
+import os
 
 #create a simple character sheet using user input
 def createCharacterSheet(character):
 	default = readDefaultSheet()
-	for field in default:
-		print "enter the " + field 
+	userCharacter = {}
+
+	if not os.path.exists(character + ".char"):
+		with open(character + ".char", 'w') as f:
+			for field in default:
+				userCharacter[field] = raw_input("enter " + field + " = ")
+				f.write(field + "=" + userCharacter[field] + '\n')
 	return
 
+#this will read in all the user defined game parameters, like classes, status effects, etc
+def readUserGameParams():
+	return
+
+#this will read in standard game parameters, for inexperienced users
+def readDefaultGameParams():
+	return
+
+#reads the template character sheet
 def readDefaultSheet():
-	default = readCharacterSheet("template")
-	return default
+	fields = []
+	fieldName = ''
+	fieldValue = ''
+
+	with open("template.char") as f:
+		for line in f:
+			if not line.startswith("#"):
+				line = stripWhitspace(line)
+				temp = line.split("=")
+				fieldName = temp[0]
+				fields.append(fieldName)
+	return fields 
 
 #read in all the character values into the game
 def readCharacterSheet(character):
@@ -32,7 +57,6 @@ def readCharacterSheet(character):
                 fieldName = temp[0]
                 fieldValue = temp[1]
                 fields[fieldName] = fieldValue
-
     return fields 
 
 #modify a field within a character sheet, setting it to value
