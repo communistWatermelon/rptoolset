@@ -9,10 +9,13 @@
 # 		react to players move (summon monsters as new players)
 #		move to next player
 gameInProgress = False
-gameState = "LOBBY"
+gameState = "NULL"
 
 # wait for players to connect to the admin
 def waitForPlayers():
+	global gameState
+	gameState = "LOBBY"
+
 	return
 
 # check if players are ready to play
@@ -73,8 +76,10 @@ def handleInturrupt():
 def main():
 	waitForPlayers()
 	while not playersReady():
+		print gameState
 		continue
-
 	getCharacters()
 	alertPlayers("GAME START")
 	beginGame()
+
+main()
