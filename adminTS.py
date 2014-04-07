@@ -39,9 +39,9 @@ def waitForPlayers():
 	while (gameState == "LOBBY"):
 		player, address = listenSocket.accept()
 		print 'Connected ', address
-		connectedPlayers = connectedPlayers + 1
+		connectedPlayers += 1
 		
-		playerThread = threading.Thread(target=listenPlayer, args=(player, address, ), )
+		playerThread = threading.Thread(target=listenPlayer, args=(player, address), )
 		playerThread.daemon = True
 		playerThreads[player] = playerThread
 		playersState[player] = "WAITING"
@@ -57,12 +57,13 @@ def listenPlayer(player, address):
 	global playersState 
 
 	while (True):
-		data = player.recv(80)
+		data = player.recv(20)
 		if data.find("READY") != -1:
 			playersState[player] = "READY"
 			print "READY: ", address
 		else:
 			print data
+		time.sleep(1)
 	return
 
 # download character sheets from each client

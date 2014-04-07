@@ -7,6 +7,7 @@
 # 	send move to admin
 import socket
 import globalTools
+import time
 
 global client
 gameInProgress = False
@@ -15,9 +16,10 @@ adminPort = 8080
 
 # connects the client to the admin, using the ipaddress and username provided. 
 def connectToAdmin(ipaddress, username):
+	global client 
 	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	client.connect((ipaddress, adminPort))
-	client.send(username)
+	#client.send(username)
 
 # displays all characters in the character folder, and allows user to select one to play with.
 # first display stats, then confirm character
@@ -55,6 +57,7 @@ def handleAlert():
 
 # alert the admin of information
 def alertAdmin(message):
+	global client
 	client.send(message)
 	return
 
@@ -77,11 +80,13 @@ def checkEquipment():
 def main():
 	client = connectToAdmin("localhost", "player1")
 	print "hit enter to ready up!"
-	raw_input()
+	thing = raw_input()
 	character = chooseCharacter()
 	alertAdmin("READY")
 	sendCharacter(character)
 	raw_input()
+	while True:
+		time.sleep(1)
 	beginGame()
 	return
 
