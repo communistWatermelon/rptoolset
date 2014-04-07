@@ -12,11 +12,12 @@ import socket
 import globalTools
 import threading
 import time
+import errno
 
 gameInProgress = False
 gameState = "NULL"
 sourcePort = 8080
-numberOfPlayers = 3
+numberOfPlayers = 1
 playerThreads = {}
 playersState = {}
 
@@ -52,18 +53,27 @@ def waitForPlayers():
 
 	return listenSocket
 
+
 # check if players are ready to play
 def listenPlayer(player, address):
 	global playersState 
 
 	while (True):
-		data = player.recv(20)
-		if data.find("READY") != -1:
-			playersState[player] = "READY"
-			print "READY: ", address
-		else:
-			print data
-		time.sleep(1)
+		try: 
+			data = player.recv(5)
+			if data.find("READY") != -1:
+				playersState[player] = "READY"
+			else:
+				print data
+				time.sleep(1)
+		except socket.error as e:
+			if e.args[0] == errno.EWOULDBLOCK:
+				continue
+			elif e.args[0] == errno.EBADF:
+				break                
+			else:
+				print("Error occured on recv: {0}".format(e))
+				break
 	return
 
 # download character sheets from each client
@@ -113,6 +123,7 @@ def getReaction():
 def addPlayer(character, human):
 	return
 
+# check if every player is currently ready
 def allPlayersReady():
 	for player in playersState.keys():
 		if playersState[player] != "READY":
@@ -127,13 +138,14 @@ def main():
 	socket = waitForPlayers()
 	while not allPlayersReady():
 		time.sleep(1)
-		print "not ready"
 		continue
 	print "All ready!"
 
-	#getCharacters()
-	#alertPlayers("GAME START")
-	#beginGame()
+	while True:
+		time.sleep(1)
+	getCharacters()
+	alertPlayers("GAME START")
+	beginGame()
 	raw_input()
 
 main()

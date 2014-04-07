@@ -8,6 +8,7 @@
 import socket
 import globalTools
 import time
+import os
 
 global client
 gameInProgress = False
@@ -24,8 +25,23 @@ def connectToAdmin(ipaddress, username):
 # displays all characters in the character folder, and allows user to select one to play with.
 # first display stats, then confirm character
 # return characters name
-def chooseCharacter():
-	return
+def chooseCharacter(characters):
+	i = 1
+	for character in os.listdir("./characters"):
+		characters.append(character)
+	
+	for character in characters:
+		print str(i) +  " " + character
+		i+=1
+ 
+	while(True):
+		choice = raw_input()
+		if (int(choice) + 1 <= len(characters) + 1 and int(choice) + 1 >= 0):
+			break
+	
+	print str(characters[int(choice) - 1]) + " chosen!"
+
+	return int(choice) - 1
 
 
 # begins gameplay. Waits for turn, then gets the users move
@@ -67,6 +83,15 @@ def sendInturrupt():
 
 # send chosen character to the admin
 def sendCharacter(character):
+	line = ''
+	total = ''
+
+	alertAdmin("CHARA")
+	with open("./characters/" + character) as f:
+		line = f.read(1024)
+		total += line
+	client.send(total)
+	client.send("ARAHC")
 	return
 
 # check player's current stats
@@ -78,12 +103,14 @@ def checkEquipment():
 	return
 
 def main():
+	characters = []
+
 	client = connectToAdmin("localhost", "player1")
 	print "hit enter to ready up!"
-	thing = raw_input()
-	character = chooseCharacter()
+	raw_input()
+	choice = chooseCharacter(characters)
 	alertAdmin("READY")
-	sendCharacter(character)
+	sendCharacter(characters[choice])
 	raw_input()
 	while True:
 		time.sleep(1)
