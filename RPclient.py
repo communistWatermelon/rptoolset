@@ -5,12 +5,19 @@
 # send characters
 # wait for turn (display stats)
 # 	send move to admin
+import socket
 import globalTools
+
+global client
 gameInProgress = False
+adminIP = "localhost"
+adminPort = 8080
 
 # connects the client to the admin, using the ipaddress and username provided. 
 def connectToAdmin(ipaddress, username):
-	return
+	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	client.connect((ipaddress, adminPort))
+	client.send(username)
 
 # displays all characters in the character folder, and allows user to select one to play with.
 # first display stats, then confirm character
@@ -48,6 +55,7 @@ def handleAlert():
 
 # alert the admin of information
 def alertAdmin(message):
+	client.send(message)
 	return
 
 # sends a move that isn't turn specific. Not sure if it's necessary yet?
@@ -67,10 +75,13 @@ def checkEquipment():
 	return
 
 def main():
-	connectToAdmin("192.168.0.1", "player1")
+	client = connectToAdmin("localhost", "player1")
+	print "hit enter to ready up!"
+	raw_input()
 	character = chooseCharacter()
 	alertAdmin("READY")
 	sendCharacter(character)
+	raw_input()
 	beginGame()
 	return
 

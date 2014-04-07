@@ -8,18 +8,61 @@
 # 	wait for player's move
 # 		react to players move (summon monsters as new players)
 #		move to next player
+import socket
+import globalTools
+import threading
+import time
+
 gameInProgress = False
 gameState = "NULL"
+sourcePort = 8080
+numberOfPlayers = 3
+playerThreads = {}
+playersState = {}
 
 # wait for players to connect to the admin
+# each player is then added to a list of players, as a new socket
+# each socket is monitored for data
 def waitForPlayers():
 	global gameState
-	gameState = "LOBBY"
+	global numberOfPlayers
+	global playersState
 
-	return
+	gameState = "LOBBY"
+	listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	listenSocket.bind(('', sourcePort))
+
+	connectedPlayers = 0
+	listenSocket.listen(1)
+
+	while (gameState == "LOBBY"):
+		player, address = listenSocket.accept()
+		print 'Connected ', address
+		connectedPlayers = connectedPlayers + 1
+		
+		playerThread = threading.Thread(target=listenPlayer, args=(player, address, ), )
+		playerThread.daemon = True
+		playerThreads[player] = playerThread
+		playersState[player] = "WAITING"
+		playerThread.start()
+
+		if (numberOfPlayers == connectedPlayers):
+			gameState = "SELECTION"
+
+	return listenSocket
 
 # check if players are ready to play
-def playersReady():
+def listenPlayer(player, address):
+	global playersState 
+
+	while (True):
+		data = player.recv(80)
+		if data.find("READY") != -1:
+			playersState[player] = "READY"
+			print "READY: ", address
+		else:
+			print data
 	return
 
 # download character sheets from each client
@@ -69,17 +112,27 @@ def getReaction():
 def addPlayer(character, human):
 	return
 
+def allPlayersReady():
+	for player in playersState.keys():
+		if playersState[player] != "READY":
+			return False
+	return True
+
 # handle an inturrupting move
 def handleInturrupt():
 	return
 
 def main():
-	waitForPlayers()
-	while not playersReady():
-		print gameState
+	socket = waitForPlayers()
+	while not allPlayersReady():
+		time.sleep(1)
+		print "not ready"
 		continue
-	getCharacters()
-	alertPlayers("GAME START")
-	beginGame()
+	print "All ready!"
+
+	#getCharacters()
+	#alertPlayers("GAME START")
+	#beginGame()
+	raw_input()
 
 main()
