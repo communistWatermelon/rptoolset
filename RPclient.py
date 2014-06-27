@@ -13,6 +13,7 @@ import threading
 import errno
 
 global client
+playersTurn = False
 playerAvatar = "NULL"
 gameInProgress = True
 adminIP = "localhost"
@@ -45,6 +46,7 @@ def chooseCharacter(characters):
 			break
 
 	playerAvatar = str(characters[int(choice) - 1])
+	playerAvatar = playerAvatar[:-5]
 	print playerAvatar + " chosen!"
 
 	return int(choice) - 1
@@ -52,31 +54,36 @@ def chooseCharacter(characters):
 
 # begins gameplay. Waits for turn, then gets the users move
 def beginGame():
+	global gameInProgress
+	global playersTurn
+
 	while gameInProgress:
-		if not playersTurn():
+		if playersTurn:
+			move = getMove()
+			alertAdmin(move)
+			playersTurn = False
+		else:
 			checkStats()
-			continue
-		move = getMove()
-		alertAdmin(move)
+			time.sleep(5)
 
 	return
 
-# if it is the players turn, return true
-def playersTurn():
-	print 'who\'s turn?'
-	return True
-
 # obtains input from the user to send to admin
 def getMove():
-	return raw_input()
+	print '---obtaining your move'
+	move = raw_input()
+	return move
 
 # handle an alert from the admin
 def handleAlert(client, line):
-	print "alert handling"
+	global playersTurn
 
 	while (True):
 		try: 
 			data = client.recv(10)
+			if data.find("TURN " + playerAvatar) != -1:
+				print '-- your turn!'
+				playersTurn = True
 			print data
 		except socket.error as e:
 			if e.args[0] == errno.EWOULDBLOCK:
@@ -137,11 +144,7 @@ def main():
 	choice = chooseCharacter(characters)
 	alertAdmin("READY")
 	sendCharacter(characters[choice])
-	raw_input()
 
-	while True:
-		time.sleep(1)
-	
 	beginGame()
 	
 	return
