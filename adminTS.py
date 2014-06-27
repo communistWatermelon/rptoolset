@@ -13,20 +13,20 @@ import globalTools
 import threading
 import time
 import errno
-
-gameInProgress = False
+connectedPlayers = 0
+gameInProgress = True
 gameState = "NULL"
 sourcePort = 8080
-numberOfPlayers = 1
 playerThreads = {}
 playersState = {}
+playersReady = 0
+playersSaved = 0
 
 # wait for players to connect to the admin
 # each player is then added to a list of players, as a new socket
 # each socket is monitored for data
 def waitForPlayers():
 	global gameState
-	global numberOfPlayers
 	global playersState
 
 	gameState = "LOBBY"
@@ -34,22 +34,19 @@ def waitForPlayers():
 	listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	listenSocket.bind(('', sourcePort))
 
-	connectedPlayers = 0
 	listenSocket.listen(1)
 
 	while (gameState == "LOBBY"):
 		player, address = listenSocket.accept()
 		print 'Connected ', address
-		connectedPlayers += 1
 		
 		playerThread = threading.Thread(target=listenPlayer, args=(player, address), )
 		playerThread.daemon = True
 		playerThreads[player] = playerThread
-		playersState[player] = "WAITING"
 		playerThread.start()
 
-		if (numberOfPlayers == connectedPlayers):
-			gameState = "SELECTION"
+		if raw_input() == "start":
+			break
 
 	return listenSocket
 
@@ -57,15 +54,21 @@ def waitForPlayers():
 # check if players are ready to play
 def listenPlayer(player, address):
 	global playersState 
+	global playersReady
+	global connectedPlayers
+
+	connectedPlayers += 1
 
 	while (True):
 		try: 
 			data = player.recv(5)
 			if data.find("READY") != -1:
-				playersState[player] = "READY"
+				playersReady += 1
+			elif data.find("CHARA") != -1:
+				getCharacters(player, data)
 			else:
-				print data
 				time.sleep(1)
+
 		except socket.error as e:
 			if e.args[0] == errno.EWOULDBLOCK:
 				continue
@@ -77,17 +80,44 @@ def listenPlayer(player, address):
 	return
 
 # download character sheets from each client
-def getCharacters():
+def getCharacters(player, line):
+	global playersState 
+	global playersSaved
+	global playersSaved
+
+	while (True):
+		try: 
+			data = player.recv(10)
+			if data.find("ARAHC") == -1:
+				#handle player data
+				print data
+			elif data.find("ARAHC") != -1: 
+				playersSaved += 1
+		except socket.error as e:
+			if e.args[0] == errno.EWOULDBLOCK:
+				continue
+			elif e.args[0] == errno.EBADF:
+				break                
+			else:
+				print("Error occured on recv: {0}".format(e))
+				break
 	return
 
 # alert all players with message
-def alertPlayers(messsage):
+def alertPlayers(message):
+	global playerThreads
+	print 'sending: ', message
+	for player in playerThreads.keys():
+		player.send(message)
 	return
+
+def getNPCMove(playerMove):
+	return "nothing"
 
 # begin game loop, choose turn.
 # if turn is players
 #	 wait for player, react to player
-# else 
+# else F
 #	make npc move
 def beginGame():
 	while gameInProgress:
@@ -105,19 +135,24 @@ def beginGame():
 
 # checks to see if the character is player controlled or admin controlled
 def isPlayer(character):
-	return
+	#print 'is player'
+	return True
 
 # pick the player with the highest speed and the lowest number of turns, return characters name. if the 
 def chooseTurn():
-	return
+	print '- choose turn'
+	player = raw_input()
+	return 'TURN ' + player
 
 # wait for user input 
-def waitForMove():
+def waitForMove(playerMove):
+	print '-- waiting for move from ', playerMove
 	return
 
 # react to user input, using input from the admin
 def getReaction():
-	return
+	print '--- getting reaction'
+	return raw_input()
 
 #add a player to the game  (human = true or false)
 def addPlayer(character, human):
@@ -125,9 +160,19 @@ def addPlayer(character, human):
 
 # check if every player is currently ready
 def allPlayersReady():
-	for player in playersState.keys():
-		if playersState[player] != "READY":
-			return False
+	global playersReady
+	global connectedPlayers
+
+	if playersReady != connectedPlayers:
+		return False
+	return True
+
+def allPlayersSaved():
+	global playersSaved
+	global connectedPlayers
+
+	if playersSaved != connectedPlayers:
+		return False
 	return True
 
 # handle an inturrupting move
@@ -136,14 +181,22 @@ def handleInturrupt():
 
 def main():
 	socket = waitForPlayers()
+
 	while not allPlayersReady():
-		time.sleep(1)
+		print playersReady
+		time.sleep(3)
 		continue
+
 	print "All ready!"
 
-	while True:
+	while not allPlayersSaved():
+		print playersSaved
 		time.sleep(1)
-	getCharacters()
+		continue
+
+	print 'got all characters!'
+	
+	print 'alert!'
 	alertPlayers("GAME START")
 	beginGame()
 	raw_input()
