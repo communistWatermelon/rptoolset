@@ -81,7 +81,7 @@ def handleAlert(client, line):
 	while (True):
 		try: 
 			data = client.recv(10)
-			if data.find("TURN " + playerAvatar) != -1:
+			if data.find("TURN " + playerAvatar.lower()) != -1:
 				print '-- your turn!'
 				playersTurn = True
 			print data
@@ -111,12 +111,21 @@ def sendCharacter(character):
 	line = ''
 	total = ''
 
+	alertAdmin("")
 	alertAdmin("CHARA")
 	with open("./characters/" + character) as f:
 		line = f.read(1024)
 		total += line
-	client.send(total)
-	client.send("ARAHC")
+
+	size = len(total)
+	alertAdmin(str(size))
+	print size
+	print len(str(size))
+	alertAdmin(total)
+	print total
+
+	#client.send(str(size))
+	#client.send(total)
 	return
 
 # check player's current stats

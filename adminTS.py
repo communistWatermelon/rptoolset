@@ -13,21 +13,22 @@ import globalTools
 import threading
 import time
 import errno
+
 connectedPlayers = 0
 gameInProgress = True
 gameState = "NULL"
 sourcePort = 8080
 playerThreads = {}
-playersState = {}
 playersReady = 0
 playersSaved = 0
+users = {}
+characters = {}
 
 # wait for players to connect to the admin
 # each player is then added to a list of players, as a new socket
 # each socket is monitored for data
 def waitForPlayers():
 	global gameState
-	global playersState
 
 	gameState = "LOBBY"
 	listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,7 +54,6 @@ def waitForPlayers():
 
 # check if players are ready to play
 def listenPlayer(player, address):
-	global playersState 
 	global playersReady
 	global connectedPlayers
 
@@ -79,29 +79,28 @@ def listenPlayer(player, address):
 				break
 	return
 
+# create a dictionary from the character data, for use in game
+def parseCharacterData(data):
+	global playersSaved
+	global users
+	tempDict = {}
+
+	for line in data.split('\n'):
+		temp = line.split("=")
+		tempDict[temp[0]] = temp[1]
+
+	users[tempDict['Name']] = tempDict
+	playersSaved += 1
+
+	return
+
 # download character sheets from each client
 def getCharacters(player, line):
-	global playersState 
-	global playersSaved
-	global playersSaved
+	size = player.recv(2)
+	data = player.recv(int(size))
+	parseCharacterData(data)	
 
-	while (True):
-		try: 
-			data = player.recv(10)
-			if data.find("ARAHC") == -1:
-				#handle player data
-				print data
-			elif data.find("ARAHC") != -1: 
-				playersSaved += 1
-		except socket.error as e:
-			if e.args[0] == errno.EWOULDBLOCK:
-				continue
-			elif e.args[0] == errno.EBADF:
-				break                
-			else:
-				print("Error occured on recv: {0}".format(e))
-				break
-	return
+	return 
 
 # alert all players with message
 def alertPlayers(message):
@@ -123,7 +122,7 @@ def beginGame():
 	while gameInProgress:
 		playerMove = chooseTurn()
 		if isPlayer(playerMove):
-			alertPlayers(playerMove)
+			alertPlayers('TURN ' + playerMove)
 			waitForMove(playerMove)
 			adminMove = getReaction()
 			alertPlayers(adminMove)
@@ -135,18 +134,25 @@ def beginGame():
 
 # checks to see if the character is player controlled or admin controlled
 def isPlayer(character):
-	#print 'is player'
-	return True
+	global users
+
+	for user in users.keys():
+		print user + " = " + character 
+
+		if str(user) == str(character):
+			return True
+
+	return False
 
 # pick the player with the highest speed and the lowest number of turns, return characters name. if the 
 def chooseTurn():
 	print '- choose turn'
 	player = raw_input()
-	return 'TURN ' + player
+	return player
 
 # wait for user input 
 def waitForMove(playerMove):
-	print '-- waiting for move from ', playerMove
+	print '-- waiting for move from', playerMove
 	return
 
 # react to user input, using input from the admin
